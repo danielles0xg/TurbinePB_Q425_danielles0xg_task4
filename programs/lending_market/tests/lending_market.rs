@@ -524,7 +524,7 @@ fn test_full_lending_flow_with_fees() {
             AccountMeta::new_readonly(collateral_mint, false),
             AccountMeta::new(borrower_loan_account, false),
             AccountMeta::new(borrower_collateral_account, false),
-            AccountMeta::new_readonly(fee_recipient.pubkey(), false),
+            AccountMeta::new(fee_recipient.pubkey(), false),
             AccountMeta::new(fee_recipient_loan_account, false),
             AccountMeta::new_readonly(spl_token::id(), false),
             AccountMeta::new_readonly(SYSTEM_PROGRAM_ID, false),
@@ -593,9 +593,9 @@ fn test_full_lending_flow_with_fees() {
             AccountMeta::new(collateral_vault_pda, false),
             AccountMeta::new(borrower_loan_account, false),
             AccountMeta::new(borrower_collateral_account, false),
-            AccountMeta::new_readonly(lender.pubkey(), false),
+            AccountMeta::new(lender.pubkey(), false),
             AccountMeta::new(lender_loan_account, false),
-            AccountMeta::new_readonly(fee_recipient.pubkey(), false),
+            AccountMeta::new(fee_recipient.pubkey(), false),
             AccountMeta::new(fee_recipient_loan_account, false),
             AccountMeta::new_readonly(spl_token::id(), false),
         ],
@@ -776,7 +776,7 @@ fn test_request_repayment_and_liquidation() {
             AccountMeta::new_readonly(collateral_mint, false),
             AccountMeta::new(borrower_loan_account, false),
             AccountMeta::new(borrower_collateral_account, false),
-            AccountMeta::new_readonly(fee_recipient.pubkey(), false),
+            AccountMeta::new(fee_recipient.pubkey(), false),
             AccountMeta::new(fee_recipient_loan_account, false),
             AccountMeta::new_readonly(spl_token::id(), false),
             AccountMeta::new_readonly(SYSTEM_PROGRAM_ID, false),
@@ -790,7 +790,7 @@ fn test_request_repayment_and_liquidation() {
         &[&borrower],
         svm.latest_blockhash(),
     );
-    svm.send_transaction(tx).unwrap();
+    svm.send_transaction(tx).expect("Take loan should succeed");
     println!(" Loan taken successfully");
 
     // Request repayment

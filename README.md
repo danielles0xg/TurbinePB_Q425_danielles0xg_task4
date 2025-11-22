@@ -60,6 +60,8 @@ loan is repaid
     - Purpose: Holds borrower's collateral during active loan
     - Token Account: Owned by CollateralVault PDA, holds collateral tokens
 
+### Notes
+- Boxed take_loan inx ctx to fix fn stack error
 
 
 ## License

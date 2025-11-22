@@ -12,40 +12,29 @@ pub struct TakeLoan<'info> {
     #[account(mut)]
     pub borrower: Signer<'info>,
 
-    pub lending_market: Account<'info, LendingMarket>,
+    pub lending_market: Box<Account<'info, LendingMarket>>,
 
     #[account(
         constraint = asset_pair_market.loan_mint == loan_mint.key() @ ErrorCode::InvalidAssetPair,
         constraint = asset_pair_market.collateral_mint == collateral_mint.key() @ ErrorCode::InvalidAssetPair,
     )]
-    pub asset_pair_market: Account<'info, AssetPairMarket>,
+    pub asset_pair_market: Box<Account<'info, AssetPairMarket>>,
 
-    #[account(
-        mut,
-        has_one = asset_pair_market,
-        constraint = lending_offer.is_active @ ErrorCode::OfferNotActive,
-    )]
-    pub lending_offer: Account<'info, LendingOffer>,
+    #[account(mut,has_one = asset_pair_market,constraint = lending_offer.is_active @ ErrorCode::OfferNotActive)]
+    pub lending_offer: Box<Account<'info, LendingOffer>>,
 
     #[account(
         init,
         payer = borrower,
         space = 8 + Loan::INIT_SPACE,
-        seeds = [
-            Loan::SEED,
-            lending_offer.key().as_ref(),
-            borrower.key().as_ref()
-        ],
+        seeds = [Loan::SEED,lending_offer.key().as_ref(),borrower.key().as_ref()],
         bump,
     )]
-    pub loan: Account<'info, Loan>,
+    pub loan: Box<Account<'info, Loan>>,
 
     #[account(
         mut,
-        seeds = [
-            LendingOffer::ESCROW_SEED,
-            lending_offer.key().as_ref()
-        ],
+        seeds = [LendingOffer::ESCROW_SEED,lending_offer.key().as_ref()],
         bump,
     )]
     pub escrow: Account<'info, TokenAccount>,
@@ -55,10 +44,7 @@ pub struct TakeLoan<'info> {
         payer = borrower,
         token::mint = collateral_mint,
         token::authority = collateral_vault,
-        seeds = [
-            Loan::COLLATERAL_SEED,
-            loan.key().as_ref()
-        ],
+        seeds = [Loan::COLLATERAL_SEED,loan.key().as_ref()],
         bump,
     )]
     pub collateral_vault: Account<'info, TokenAccount>,
@@ -100,6 +86,15 @@ pub struct TakeLoan<'info> {
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
+
+/// 1. Validate collateral amount based on LTV
+/// 2. Calculate borrower fee (1%)
+/// 3. Transfer collateral from borrower to collateral vault
+/// 4. Create escrow authority seeds
+/// 5. Transfer loan amount (minus fee) from escrow to borrower
+/// 6. Transfer fee from escrow to fee recipient
+/// 7. Initialize loan
+/// 8. Mark offer as inactive since it's been taken
 
 pub fn take_loan_handler(ctx: Context<TakeLoan>, collateral_amount: u64) -> Result<()> {
     let lending_offer = &ctx.accounts.lending_offer;
@@ -174,22 +169,24 @@ pub fn take_loan_handler(ctx: Context<TakeLoan>, collateral_amount: u64) -> Resu
     );
     token::transfer(cpi_ctx, borrower_fee)?;
 
-    // Initialize loan
-    let loan = &mut ctx.accounts.loan;
-    let current_time = Clock::get()?.unix_timestamp;
+    { 
+        // Initialize loan
+        let loan = &mut ctx.accounts.loan;
+        let current_time = Clock::get()?.unix_timestamp;
 
-    loan.lending_offer = lending_offer.key();
-    loan.lender = lending_offer.lender;
-    loan.borrower = ctx.accounts.borrower.key();
-    loan.principal_amount = loan_amount;
-    loan.collateral_amount = collateral_amount;
-    loan.interest_rate_bps = lending_offer.interest_rate_bps;
-    loan.ltv_bps = lending_offer.ltv_bps;
-    loan.loan_start_time = current_time;
-    loan.last_interest_update = current_time;
-    loan.repayment_deadline = None;
-    loan.is_active = true;
-    loan.bump = ctx.bumps.loan;
+        loan.lending_offer = lending_offer.key();
+        loan.lender = lending_offer.lender;
+        loan.borrower = ctx.accounts.borrower.key();
+        loan.principal_amount = loan_amount;
+        loan.collateral_amount = collateral_amount;
+        loan.interest_rate_bps = lending_offer.interest_rate_bps;
+        loan.ltv_bps = lending_offer.ltv_bps;
+        loan.loan_start_time = current_time;
+        loan.last_interest_update = current_time;
+        loan.repayment_deadline = None;
+        loan.is_active = true;
+        loan.bump = ctx.bumps.loan;
+    }
 
     // Mark offer as inactive since it's been taken
     let lending_offer = &mut ctx.accounts.lending_offer;
