@@ -1,7 +1,9 @@
 # Lending market
 
 
-Modular peer-to-peer lending protocol, where borrowers and Lenders choose their risk/reward (LTV/APR), is perpetual: no expirations, and no time-based liquidations, is an orderbook: users may determine yield/interest individually by no means of trade intermediaries.
+Modular peer-to-peer lending protocol, where borrowers and Lenders choose their risk/reward (LTV/APR), is perpetual: no expirations, and no time-based liquidations, is an orderbook: users may determine yield/interest individually by 
+
+- no means of trading intermediaries.
 
 Note: this project took task3 project as the starter point
 
@@ -23,6 +25,11 @@ loan is repaid
 - As a borrower I can borrow capital against my collateral token
 - As a borrower I repay the Loan and get back my collateral token
 
+
+## Sequence Diagram
+
+- Loan repayment
+![](./arch/seq_diagram.png)
 
 ## PDA Architecture 
 (inspired by builders capstone youtube presentations, Im adding the pda architecture)
@@ -60,6 +67,8 @@ loan is repaid
     - Purpose: Holds borrower's collateral during active loan
     - Token Account: Owned by CollateralVault PDA, holds collateral tokens
 
+### TODO
+- Integrate switchboard oracles for collateral valuation
 ### Notes
 - Boxed take_loan inx ctx to fix fn stack error
 
